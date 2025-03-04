@@ -1,6 +1,20 @@
 Project: Distributed Task Queue System
 
-In this project I implemented a Distributed Task Queue System using Node.js, BullMQ, Redis, and Docker Swarm. The system processes tasks asynchronously using multiple worker instances.
+A Node.js-based distributed task queue system with fault tolerance, dynamic scaling, and monitoring. Uses Redis, BullMQ, and Docker Swarm.
+
+
+Technology Choices
+- BullMQ: Provides job scheduling, retries, and priority queues.
+- Redis: Acts as a fast, in-memory job broker.
+- Docker Swarm: Enables horizontal scaling of workers.
+
+How it Works:
+
+- The API (task-api) receives task requests and pushes them to BullMQ.
+- Redis acts as the message broker.
+- Workers (task-worker) pick up jobs and process them asynchronously.
+- The system is horizontally scalable via Docker Swarm.
+- BullMQ Admin Panel allows real-time monitoring of tasks.
 
 1. Prerequisites
 
@@ -8,14 +22,14 @@ Ensure the following are installed:
 
 -- Docker & Docker Compose
 
---Node.js (if running locally)
+--Node.js 
 
---Redis CLI (optional for debugging)
+--Redis CLI 
 
 2. Configuration Files
 
 .env :
-REDIS_HOST=redis
+REDIS_HOST=task-queue_redis
 REDIS_PORT=6379
 
 -- Deployment:
@@ -42,3 +56,16 @@ redis-cli -h redis -p 6379 PING
 
 -- Monitor Jobs:
 http://localhost:3000/admin/queues
+
+for  exmaple testing:
+curl -X POST http://localhost:3000/api/enqueue -H "Content-Type: application/json" -d '{
+"task": {
+"taskId": "1234",
+"type": "email",
+"data": {
+"to": "user@example.com",
+"subject": "Welcome!",
+"body": "Thanks for signing up!"
+}
+}
+}'

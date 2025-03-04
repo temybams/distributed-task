@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const redisClient = new Redis({
-  host: process.env.REDIS_HOST || "redis",
+  host: process.env.REDIS_HOST || "task-queue_redis",
   port: Number(process.env.REDIS_PORT) || 6379,
 });
 

@@ -7,7 +7,7 @@ if (!process.env.PORT) throw new Error("PORT is missing in .env");
 
 export default {
   redis: {
-    host: process.env.REDIS_HOST || "localhost",
+    host: process.env.REDIS_HOST || "task-queue_redis",
     port: Number(process.env.REDIS_PORT) || 6379,
   },
   server: {
