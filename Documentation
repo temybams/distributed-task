@@ -1,0 +1,44 @@
+Project: Distributed Task Queue System
+
+In this project I implemented a Distributed Task Queue System using Node.js, BullMQ, Redis, and Docker Swarm. The system processes tasks asynchronously using multiple worker instances.
+
+1. Prerequisites
+
+Ensure the following are installed:
+
+-- Docker & Docker Compose
+
+--Node.js (if running locally)
+
+--Redis CLI (optional for debugging)
+
+2. Configuration Files
+
+.env :
+REDIS_HOST=redis
+REDIS_PORT=6379
+
+-- Deployment:
+Clean Up Previous Deployments (If Any):
+docker stack rm task_queue
+docker network rm task-queue
+docker system prune -a -f
+docker volume prune -f
+
+-- Build and Deploy the Stack:
+docker stack deploy -c docker-compose.yml task_queue
+
+-- Delete and Redeploy Containers
+docker stack rm task_queue
+docker system prune -a -f
+docker stack deploy -c docker-compose.yml task_queue
+
+-- Verify Services:
+docker service ls
+
+-- Check Redis Connection
+docker exec -it $(docker ps --filter "name=task_queue_task-api" -q | head -n 1) sh
+redis-cli -h redis -p 6379 PING
+
+-- Monitor Jobs:
+http://localhost:3000/admin/queues
