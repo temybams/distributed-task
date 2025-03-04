@@ -9,7 +9,7 @@ const server = app.listen(PORT, async () => {
 
 
   try {
-    if (redisClient.status === "end") { // Only reconnect if the connection is closed
+    if (redisClient.status === "end") { 
       await redisClient.connect();
       console.log("Reconnected to Redis");
     } else if (redisClient.status === "connecting" || redisClient.status === "ready") {
@@ -21,11 +21,14 @@ const server = app.listen(PORT, async () => {
 });
 
 // Gracefully handle shutdown
-process.on("SIGINT", async () => {
-  console.log("Closing Redis Connection...");
+const gracefulShutdown = async () => {
+  console.log("⚠️ Closing Redis Connection...");
   await redisClient.quit();
   server.close(() => {
-    console.log("Server closed.");
+    console.log(" Server closed.");
     process.exit(0);
   });
-});
+};
+
+process.on("SIGINT", gracefulShutdown);
+process.on("SIGTERM", gracefulShutdown);

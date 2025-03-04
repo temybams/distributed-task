@@ -13,9 +13,7 @@ const taskQueue = new Queue("task-queue", {
     },
   });
 
-/**
- * Get job status by ID
- */
+
 export const getJobStatus = catchAsync(async (req: Request, res: Response) => {
     const job = await taskQueue.getJob(req.params.id);
     if (!job) throwError("Job not found", 404);

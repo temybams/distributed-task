@@ -1,8 +1,9 @@
-import { Queue } from "bullmq";
+import { Queue } from "bullmq"
+import redisClient from "../config/redis.config";;
 
-export const taskQueue = new Queue("task-queue", {
-  connection: {
-    host: process.env.REDIS_HOST || "localhost",
-    port: Number(process.env.REDIS_PORT) || 6379,
-  },
+
+const taskQueue = new Queue("task-queue", {
+  connection: redisClient,
 });
+
+export default taskQueue;

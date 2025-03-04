@@ -10,17 +10,18 @@ import errorHandler from "./middleware/errorhandler.middleware";
 import { IError } from "./types/error.type";
 
 const app = express();
+
 app.use(express.json());
 
-//  Add Health Check Route for Testing
+
 app.get("/api", (req: Request, res: Response) => {
   res.json({ message: "API is running" });
 });
 
-// Task Queue
+
 const taskQueue = new Queue("task-queue", { connection: redisClient });
 
-// Bull Board Dashboard
+
 const serverAdapter = new ExpressAdapter();
 serverAdapter.setBasePath("/admin/queues");
 createBullBoard({
@@ -28,14 +29,14 @@ createBullBoard({
   serverAdapter,
 });
 
-// Routes
+
 app.use("/api", taskRoutes);
 app.use("/api", monitorRoutes);
 app.use("/admin/queues", serverAdapter.getRouter());
 
-// Error Handling Middleware
+
 app.use((err: IError, req: Request, res: Response, next: NextFunction) => {
   errorHandler(err, req, res, next);
 });
 
-export default app; //  Export the app without listening to a port
+export default app; 

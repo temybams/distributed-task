@@ -1,4 +1,5 @@
 version: "3.8"
+
 services:
   redis:
     image: redis:latest
@@ -6,15 +7,53 @@ services:
     restart: always
     ports:
       - "6379:6379"
+    networks:
+      - task-queue
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
 
-  app:
-    build: .
+  task-api:
+    image: task-queue-api:latest
     container_name: task_queue_server
     restart: always
     ports:
       - "3000:3000"
-    depends_on:
-      - redis
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+    networks:
+      - task-queue
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager  # ✅ Ensures API runs only on a manager node
+
+  task-worker:
+    image: task-queue-worker:latest
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    networks:
+      - task-queue
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: "256M"
+
+networks:
+  task-queue:
+    driver: overlay  # ✅ Overlay is correct for Swarm

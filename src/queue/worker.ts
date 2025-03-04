@@ -1,55 +1,59 @@
 import { Worker, Job } from "bullmq";
+import Redlock from "redlock";
 import redisClient from "../config/redis.config";
 import { logger } from "../utils/logger";
 import throwError from "../utils/error";
 
-/**
- * Process job function with proper type
- */
- export const processJob = async (job: Job) => {
-  if (!job.data) throwError("Job data is missing", 400);
+const redlock = new Redlock([redisClient], {
+  retryCount: 5, 
+  retryDelay: 200,
+});
 
-  logger.info(`Processing job ${job.id}: ${JSON.stringify(job.data)}`);
-  await new Promise((res) => setTimeout(res, 5000)); // Simulate processing time
-  return { success: true };
+export const processJob = async (job: Job) => {
+  const lockKey = `lock:${job.id}`;
+  let lock;
+
+  try {
+    lock = await redlock.acquire([lockKey], 5000);
+    logger.info(`Lock acquired for Job ${job.id}`);
+
+    // Simulating job execution
+    logger.info(`⚙️ Processing job ${job.id}: ${JSON.stringify(job.data)}`);
+    await new Promise((res) => setTimeout(res, 5000));
+
+    return { success: true };
+  } catch (error: any) {
+    logger.error(`Job ${job.id} failed: ${error.message}`);
+    const retries = job.attemptsMade || 0;
+    if (retries < 3) {
+      logger.info(`Retrying job ${job.id} (Attempt ${retries + 1}/3)`);
+      await job.retry();
+    } else {
+      logger.error(`Max retries reached for job ${job.id}`);
+    }
+    throw error;
+  } finally {
+    if (lock) {
+      await lock.release();
+      logger.info(`Lock released for Job ${job.id}`);
+    }
+  }
 };
 
-/**
- * Worker that processes tasks from "task-queue"
- */
+
+//  Adds Worker for Processing Tasks
 export const taskWorker = new Worker(
   "task-queue",
-  async (job: Job | undefined) => {
-    if (!job) {
-      logger.error("Received an undefined job.");
-      return;
-    }
+  async (job) => {
     try {
       return await processJob(job);
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      logger.error(`Job ${job.id} failed: ${errorMessage}`);
-      throw error;
+    } catch (error: any) {
+      logger.error(`Job ${job?.id} failed: ${error.message}`);
+      return Promise.reject(throwError(`Worker processing failed: ${error.message}`, 500));
     }
   },
-  {
-    connection: {
-      host: process.env.REDIS_HOST || "localhost",
-      port: Number(process.env.REDIS_PORT) || 6379,
-    },
-});
+  { connection: redisClient }
+);
 
-/**
- * Event listeners for worker
- */
-taskWorker.on("completed", (job: Job) => {
-  logger.info(`Job ${job.id} completed`);
-});
-
-taskWorker.on("failed", (job: Job | undefined, err: Error) => {
-  if (job) {
-    logger.error(`Job ${job.id} failed: ${err.message}`);
-  } else {
-    logger.error(`A job failed, but job details are unavailable: ${err.message}`);
-  }
-});
+taskWorker.on("completed", (job) => logger.info(`Job ${job?.id} completed`));
+taskWorker.on("failed", (job, err) => logger.error(`Job ${job?.id} failed: ${err.message}`));
