@@ -26,6 +26,10 @@ Ensure the following are installed:
 
 --Redis CLI 
 
+-- Typescript
+
+--Yarn
+
 2. Configuration Files
 
 .env :
